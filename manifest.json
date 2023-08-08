@@ -24,7 +24,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["images/*.png"],
+      "resources": ["images/*.png", "blacklist.txt"],
       "matches": ["<all_urls>"]
     }
   ]

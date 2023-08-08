@@ -1,4 +1,11 @@
-let blacklist = ['malicious.com', 'unsafe.org', 'dodgy.net'];  // Replace with your actual list
+let blacklist = new Set(); // Now using a set
+
+// Load the blacklist from the file
+fetch(chrome.runtime.getURL('blacklist.txt'))
+  .then(response => response.text())
+  .then(data => {
+    data.split('\n').forEach(item => blacklist.add(item)); // Adding each item to the set
+  });
 
 // Listen to tab update events
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
@@ -16,22 +23,20 @@ chrome.tabs.onCreated.addListener(function(tab) {
     });
 });
 
-function checkTab(tab) {
+async function checkTab(tab) { // Using async to await GetUserId
     let url = tab.url;
     // Only process tabs with a URL (i.e., not a new tab)
     if (url !== undefined && url !== 'chrome://newtab/') {
-        if (blacklist.some(blockedUrl => url.includes(blockedUrl))) {
+        if (blacklist.has(url)) { // Now using the set's has method
             alert('This site is on our blacklist. Proceed with caution!');
         } 
         else {
             let timestamp = Date.now();
-            // Send the URL, timestamp, and any other data to your server
-            sendToServer(url, timestamp, GetUserId());
+            let userId = await GetUserId(); // Awaiting the userId
+            sendToServer(url, timestamp, userId);
         }
     }
 }
-
-
 
 function sendToServer(url, timestamp, userId) {
     // This is a placeholder. You will need to replace it with your actual server-side logic.
@@ -57,11 +62,9 @@ function sendToServer(url, timestamp, userId) {
     });
 }
 
-
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     // Reciving message to download history from the popup.js
-    if (request.message === "downloadHistory") 
-    {
+    if (request.message === "downloadHistory") {
         fetch('https://yourserver.com/get-history', {
             method: 'GET',
         })
@@ -76,7 +79,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
                 csvContent += row.join(',') + '\r\n';
             });
 
-            // Create a downloadable link and click it
             let encodedUri = encodeURI(csvContent);
             let link = document.createElement('a');
             link.setAttribute('href', encodedUri);
@@ -91,25 +93,24 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             sendResponse({success: false});
         });
     }
-    return true;  // Will respond asynchronously.
+    return true; // Will respond asynchronously.
 });
-
 
 chrome.runtime.onInstalled.addListener(() => {
     // check if the user id is already set
     chrome.storage.sync.get('userId', (data) => {
       if (!data.userId) {
         // if not, generate a new unique id
-        let userId = generateUniqueId();
-        
+        let userId = generateUserId();
+
         // save the user id to the storage
         chrome.storage.sync.set({userId: userId}, () => {
           console.log('User ID set to', userId);
         });
       }
     });
-  });
-  
+});
+
 function generateUserId() {
     let array = new Uint32Array(4);
     window.crypto.getRandomValues(array);
@@ -121,24 +122,26 @@ function generateUserId() {
 }
 
 function GetUserId() {
-    chrome.storage.sync.get('userId', function(result) {
-        if (result.userId) {
-            // Existing user, userId was retrieved successfully.
-            return result.userId;
-        } else {
-            // New user, generate a new userId.
-            let userId = generateUserId();
-            chrome.storage.sync.set({ 'userId': userId }, function() {
-                if (chrome.runtime.lastError) {
-                    console.log('Failed to save userId:', chrome.runtime.lastError.message);
-                }
-            });
-            return userId;
-        }
+    return new Promise((resolve, reject) => { // Now returns a Promise to be async
+        chrome.storage.sync.get('userId', function(result) {
+            if (result.userId) {
+                // Existing user, userId was retrieved successfully.
+                resolve(result.userId);
+            } else {
+                // New user, generate a new userId.
+                let userId = generateUserId();
+                chrome.storage.sync.set({ 'userId': userId }, function() {
+                    if (chrome.runtime.lastError) {
+                        reject('Failed to save userId:', chrome.runtime.lastError.message);
+                    } else {
+                        resolve(userId);
+                    }
+                });
+            }
+        });
     });
-    
 }
-  
+
 
 // If you want to connect to a server, you will need to send a request here. 
 // You might use the fetch API, jQuery's $.ajax, or another method.
