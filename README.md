@@ -1,7 +1,3 @@
-Certainly! Here's a sample README for your Google Chrome extension:
-
----
-
 # MomKnows - Children's Browsing History Tracker
 
 *Keep an eye on your child's online activities, no matter what.*
@@ -16,7 +12,7 @@ Certainly! Here's a sample README for your Google Chrome extension:
 
 - 🚀 **Live Tracking:** Real-time tracking of every website visited.
 - 🔒 **Tamper-Proof:** Even if the browsing data is deleted or cleared, **MomKnows** keeps a full record.
-- 🌐 **Remote Monitoring:** Uses the `api.momknows.co` backend to store and fetch history, allowing parents to monitor from any device.
+- 🌐 **All time History** Get access at all of the browsing history sorted just by clicking a button!
 - ⚙️ **Easy Setup:** Just install the extension and start monitoring.
 
 ## Installation
@@ -34,29 +30,11 @@ git clone https://github.com/yourusername/momknows-extension.git
 1. Install the extension as mentioned above.
 2. Click on the **MomKnows** icon in the Chrome toolbar.
 3. If prompted, authorize the extension.
-4. Visit `api.momknows.co` to view the recorded browsing history.
+4. Click the button and see the History!
 
 ## Tech Stack
 
 - **Frontend:** Vanilla Javascript
 - **Backend:** `api.momknows.co`
 
-## Contributions
 
-Contributions are always welcome! Please see our `CONTRIBUTING.md` for more details.
-
-## License
-
-This project is licensed under the MIT License. See `LICENSE` for more details.
-
-## Support
-
-For support or queries, reach out to us at `support@momknows.co`.
-
----
-
-**Note:** Always ensure you have informed your children about monitoring their activities and respect their privacy.
-
----
-
-By using the provided README template, you can quickly set up an informative and comprehensive documentation for your Chrome extension. Make sure to replace placeholder links and content (like `path_to_your_logo.png` and `https://github.com/yourusername/momknows-extension.git`) with your actual links and information.
