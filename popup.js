@@ -16,6 +16,11 @@ chrome.storage.local.get('userPaidStatus', function(data) {
                 body {
                 width: 200px;
                 text-align: center;
+                padding: 20px; // Added padding for the body
+                }
+                #downloadBtn {
+                padding: 10px 20px; // Padding for the button
+                display: inline-block; // To ensure the button doesn't stretch to full width
                 }
             </style>
             <h1>Download History</h1>
