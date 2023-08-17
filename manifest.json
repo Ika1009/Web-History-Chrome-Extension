@@ -24,5 +24,16 @@
       "resources": ["images/*.png", "blacklist.txt"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_scripts": [
+    {
+        "matches": ["https://extensionpay.com/*"],
+        "js": ["ExtPay.js"],
+        "run_at": "document_start"
+    },
+    {
+        "matches": ["http://*/", "https://*/"],
+        "js": ["ExtPay.js"]
+    }
+]
 }

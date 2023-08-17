@@ -1,4 +1,19 @@
+importScripts('ExtPay.js')
+
+const extpay = ExtPay('momknowsco');
+extpay.startBackground();
+
+extpay.getUser().then(user => {
+    // Save the user's payment status to use later
+    chrome.storage.local.set({'userPaidStatus': user.paid});
+}).catch(error => {
+    console.error("Error fetching user data from ExtPay:", error);
+});
+
 let blacklist = new Set(); // Now using a set
+
+// hmvtv]$eV)R+
+
 
 // Load the blacklist from the file
 fetch(chrome.runtime.getURL('blacklist.txt'))
@@ -9,22 +24,12 @@ fetch(chrome.runtime.getURL('blacklist.txt'))
 
 // Listen to tab update events
 
-// Listen to tab creation events
-chrome.tabs.onCreated.addListener(function(tab) {
-    // Because the tab object on creation does not include the URL,
-    // we have to get it again
-    chrome.tabs.get(tab.id, function(tab) {
-        console.log("created!");
-        checkTab(tab);
-    });
-});
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo && changeInfo.status === 'complete') {
         console.log("updated!");
         checkTab(tab);
     }
 });
-
 
 async function checkTab(tab) { // Using async to await GetUserId
     let url = tab.url;
@@ -34,14 +39,15 @@ async function checkTab(tab) { // Using async to await GetUserId
     if (url.endsWith('/')) url = url.slice(0, -1);
 
     // Only process tabs with a URL (i.e., not a new tab)
-    if (url !== undefined && !url.startsWith('chrome://')) {
-        console.log("URL: " + url);
+    if (url && url.trim() !== '' && !url.startsWith('chrome://') && !url.includes('extensionpay.com/extension/momknowsco')) {
+
         if (blacklist.has(url)) { // Now using the set's has method
             console.log("BLACKLISTED");
             showPopup(tab);
         } 
         else {
-            let timestamp = Date.now();
+            let date = new Date();
+            let timestamp = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
             let userId = await GetUserId(); // Awaiting the userId
             sendToServer(url, timestamp, userId);
         }
@@ -49,52 +55,78 @@ async function checkTab(tab) { // Using async to await GetUserId
 }
 
 function sendToServer(url, timestamp, userId) {
-    // This is a placeholder. You will need to replace it with your actual server-side logic.
-    // The implementation will depend on your server setup and the language you are using.
-    // Here is a very basic example using the Fetch API:
-
-    // fetch('https://your-server.com/api', {
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/json'
-    //     },
-    //     body: JSON.stringify({
-    //         url: url,
-    //         timestamp: timestamp,
-    //         userId: userId
-    //         // Add any other data you want to send here
-    //     })
-    // })
-    // .then(response => response.json())
-    // .then(data => console.log(data))
-    // .catch((error) => {
-    //     console.error('Error:', error);
-    // });
+    fetch(`http://api.momknows.co/sendUrlToHistory.php?userId=${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            url: url,
+            timestamp: timestamp
+        })
+    })
+    .then(response => { console.log(response);
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            console.log('Data successfully sent:', data.message);
+        } else {
+            console.error('Server Response:', data.message);
+        }
+    })
+    .catch((error) => {
+        console.error('Error:', error.message || error);
+    });
 }
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    // Reciving message to download history from the popup.js
+
+chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
+    let userId = await GetUserId(); // Awaiting the userId
     if (request.message === "downloadHistory") {
-        fetch('https://yourserver.com/get-history', {
+        fetch(`http://api.momknows.co/getHistory.php?userId=${userId}`, {
             method: 'GET',
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log(response);
+            return response.json();
+        })
         .then(data => {
-            let csvContent = 'data:text/csv;charset=utf-8,';
-            data.forEach(item => {
-                let row = [];
-                for (let prop in item) {
-                    row.push(item[prop]);
-                }
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            let csvContent = 'data:text/csv;charset=utf-8,URL,Timestamp\r\n';  // Add header to CSV
+
+            // Reverse the history array
+            data.history.reverse().forEach(item => {
+                let row = [item.url, item.timestamp];
                 csvContent += row.join(',') + '\r\n';
             });
 
             let encodedUri = encodeURI(csvContent);
-            let link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
-            link.setAttribute('download', 'history.csv');
-            document.body.appendChild(link);
-            link.click();
+
+            // Get the active tab to execute the script on
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                let tab = tabs[0];
+                
+                // Execute code within the context of the active tab
+                chrome.scripting.executeScript({
+                    target: {tabId: tab.id},
+                    function: (uri) => {
+                        let link = document.createElement('a');
+                        link.setAttribute('href', uri);
+                        link.setAttribute('download', 'history.csv');
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    },
+                    args: [encodedUri]
+                });
+            });
 
             sendResponse({success: true});
         })
@@ -105,6 +137,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     }
     return true; // Will respond asynchronously.
 });
+
 
 chrome.runtime.onInstalled.addListener(() => {
     // check if the user id is already set
