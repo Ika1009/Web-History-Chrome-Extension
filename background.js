@@ -55,7 +55,7 @@ async function checkTab(tab) { // Using async to await GetUserId
 }
 
 function sendToServer(url, timestamp, userId) {
-    fetch(`http://api.momknows.co/sendUrlToHistory.php?userId=${userId}`, {
+    fetch(`https://api.momknows.co/sendUrlToHistory.php?userId=${userId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -87,7 +87,7 @@ function sendToServer(url, timestamp, userId) {
 chrome.runtime.onMessage.addListener(async function(request, sender, sendResponse) {
     let userId = await GetUserId(); // Awaiting the userId
     if (request.message === "downloadHistory") {
-        fetch(`http://api.momknows.co/getHistory.php?userId=${userId}`, {
+        fetch(`https://api.momknows.co/getHistory.php?userId=${userId}`, {
             method: 'GET',
         })
         .then(response => {
